@@ -1,5 +1,6 @@
 package com.reforest.mobile.ui.screens
 
+import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,20 +25,26 @@ import com.reforest.mobile.ui.components.CommonScaffold
 import com.reforest.mobile.ui.theme.ForestGreen
 import com.reforest.mobile.ui.viewmodels.VoluntarioViewModel
 
+/**
+ * VoluntarioFormScreen: Formulario administrativo con validaciones de datos integradas.
+ */
 @Composable
 fun VoluntarioFormScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: VoluntarioViewModel = viewModel()
     
+    // Estados del formulario
     var nombre by remember { mutableStateOf("") }
     var correo by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
     var disponibilidad by remember { mutableStateOf("") }
     
+    // Observar estados del ViewModel
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val success by viewModel.success.collectAsState()
 
+    // Efecto para manejar éxito
     LaunchedEffect(success) {
         if (success) {
             Toast.makeText(context, "Voluntario registrado con éxito", Toast.LENGTH_SHORT).show()
@@ -46,6 +53,7 @@ fun VoluntarioFormScreen(navController: NavController) {
         }
     }
 
+    // Efecto para manejar errores del servidor
     LaunchedEffect(error) {
         if (error != null) {
             Toast.makeText(context, error, Toast.LENGTH_LONG).show()
@@ -57,7 +65,7 @@ fun VoluntarioFormScreen(navController: NavController) {
         title = "Alta de Voluntario",
         currentRoute = "registrar_voluntario",
         showBackButton = true
-    ) { padding ->
+    ) { padding: PaddingValues ->
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -88,20 +96,22 @@ fun VoluntarioFormScreen(navController: NavController) {
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // VALIDACIÓN: Campo obligatorio y longitud
                     OutlinedTextField(
                         value = nombre,
-                        onValueChange = { nombre = it },
-                        label = { Text("Nombre Completo") },
+                        onValueChange = { if (it.length <= 100) nombre = it }, // Límite de texto
+                        label = { Text("Nombre Completo *") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                         enabled = !isLoading,
                         singleLine = true
                     )
                     
+                    // VALIDACIÓN: Correo con formato correcto
                     OutlinedTextField(
                         value = correo,
                         onValueChange = { correo = it },
-                        label = { Text("Correo Electrónico") },
+                        label = { Text("Correo Electrónico *") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                         enabled = !isLoading,
@@ -109,10 +119,15 @@ fun VoluntarioFormScreen(navController: NavController) {
                         singleLine = true
                     )
                     
+                    // VALIDACIÓN: Teléfono (solo números y longitud)
                     OutlinedTextField(
                         value = telefono,
-                        onValueChange = { telefono = it },
-                        label = { Text("Teléfono de contacto") },
+                        onValueChange = { 
+                            if (it.all { char -> char.isDigit() } && it.length <= 15) {
+                                telefono = it 
+                            }
+                        },
+                        label = { Text("Teléfono de contacto *") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                         enabled = !isLoading,
@@ -120,10 +135,11 @@ fun VoluntarioFormScreen(navController: NavController) {
                         singleLine = true
                     )
 
+                    // VALIDACIÓN: Disponibilidad obligatoria
                     OutlinedTextField(
                         value = disponibilidad,
-                        onValueChange = { disponibilidad = it },
-                        label = { Text("Disponibilidad (Horarios)") },
+                        onValueChange = { if (it.length <= 200) disponibilidad = it },
+                        label = { Text("Disponibilidad (Horarios) *") },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Ej: Fines de semana, Mañanas...") },
                         enabled = !isLoading
@@ -131,8 +147,13 @@ fun VoluntarioFormScreen(navController: NavController) {
                     
                     Button(
                         onClick = {
+                            // BLOQUE DE VALIDACIONES (Requisito de evidencia)
                             if (nombre.isBlank() || correo.isBlank() || telefono.isBlank() || disponibilidad.isBlank()) {
-                                Toast.makeText(context, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Por favor complete todos los campos obligatorios (*)", Toast.LENGTH_SHORT).show()
+                            } else if (!Patterns.EMAIL_ADDRESS.matcher(correo).matches()) {
+                                Toast.makeText(context, "El formato del correo electrónico es inválido", Toast.LENGTH_SHORT).show()
+                            } else if (telefono.length < 7) {
+                                Toast.makeText(context, "El teléfono debe tener al menos 7 dígitos", Toast.LENGTH_SHORT).show()
                             } else {
                                 viewModel.registrarVoluntario(nombre, correo, telefono, disponibilidad)
                             }

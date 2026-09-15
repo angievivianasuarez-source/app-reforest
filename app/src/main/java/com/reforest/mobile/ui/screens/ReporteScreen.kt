@@ -22,16 +22,16 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.android.gms.location.LocationServices
 import com.reforest.mobile.data.model.Incendios
 import com.reforest.mobile.ui.components.CommonScaffold
 import com.reforest.mobile.ui.components.MapViewContainer
 import com.reforest.mobile.ui.theme.ForestGreen
 import com.reforest.mobile.ui.viewmodels.IncendioViewModel
-import com.google.android.gms.location.LocationServices
 import org.osmdroid.util.GeoPoint
 
 /**
- * ReporteScreen: Pantalla para registrar un incendio con actualización en tiempo real.
+ * ReporteScreen: Pantalla para registrar un incendio con validaciones de ubicación y datos.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +46,7 @@ fun ReporteScreen(
     var latitud by remember { mutableStateOf("") }
     var longitud by remember { mutableStateOf("") }
 
-    // Observar estados del ViewModel
+    // Observar estados del ViewModel compartido
     val isLoading by incendioViewModel.isLoading.collectAsState()
     val error by incendioViewModel.error.collectAsState()
     val success by incendioViewModel.success.collectAsState()
@@ -110,22 +110,22 @@ fun ReporteScreen(
         title = "Nuevo Reporte",
         currentRoute = "reporte",
         showBackButton = true
-    ) { paddingValues: PaddingValues ->
+    ) { padding: PaddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Toca el mapa para ubicar el incendio",
+                text = "Toca el mapa para ubicar el incendio *",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // MAPA SELECTOR
+            // MAPA SELECTOR (VALIDACIÓN: Coordenadas de ubicación)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -160,19 +160,21 @@ fun ReporteScreen(
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // VALIDACIÓN: Campo obligatorio y Texto demasiado largo
                     OutlinedTextField(
                         value = ubicacion,
-                        onValueChange = { ubicacion = it },
-                        label = { Text("Nombre de la zona/Ubicación *") },
+                        onValueChange = { if (it.length <= 150) ubicacion = it },
+                        label = { Text("Nombre de la zona *") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Place, contentDescription = null) },
                         singleLine = true,
                         enabled = !isLoading
                     )
 
+                    // VALIDACIÓN: Campo obligatorio
                     OutlinedTextField(
                         value = descripcion,
-                        onValueChange = { descripcion = it },
+                        onValueChange = { if (it.length <= 500) descripcion = it },
                         label = { Text("Descripción del suceso *") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
@@ -180,6 +182,7 @@ fun ReporteScreen(
                         enabled = !isLoading
                     )
 
+                    // Selector de Estado
                     var expanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(
                         expanded = expanded,
@@ -189,7 +192,7 @@ fun ReporteScreen(
                             value = estado.replaceFirstChar { it.uppercase() },
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Estado") },
+                            label = { Text("Estado *") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                             modifier = Modifier.menuAnchor().fillMaxWidth(),
@@ -213,8 +216,9 @@ fun ReporteScreen(
 
                     Button(
                         onClick = {
+                            // BLOQUE DE VALIDACIONES (Requisito de evidencia)
                             if (ubicacion.isBlank() || descripcion.isBlank() || latitud.isBlank()) {
-                                Toast.makeText(context, "Todos los campos y ubicación son obligatorios", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Por favor complete la ubicación en el mapa y los campos obligatorios (*)", Toast.LENGTH_LONG).show()
                                 return@Button
                             }
 
@@ -226,7 +230,6 @@ fun ReporteScreen(
                                 longitud = longitud.toDoubleOrNull()
                             )
 
-                            // Delegar el registro al ViewModel compartido
                             incendioViewModel.registrarIncendio(incendio)
                         },
                         modifier = Modifier.fillMaxWidth(),

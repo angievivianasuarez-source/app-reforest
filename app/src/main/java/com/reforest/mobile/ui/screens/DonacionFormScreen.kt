@@ -23,15 +23,20 @@ import com.reforest.mobile.ui.components.CommonScaffold
 import com.reforest.mobile.ui.theme.ForestGreen
 import com.reforest.mobile.ui.viewmodels.DonacionViewModel
 
+/**
+ * DonacionFormScreen: Formulario para registrar donaciones con validaciones de tipo y cantidad.
+ */
 @Composable
 fun DonacionFormScreen(navController: NavController) {
     val context = LocalContext.current
     val viewModel: DonacionViewModel = viewModel()
     
+    // Estados del formulario
     var entidad by remember { mutableStateOf("") }
     var especie by remember { mutableStateOf("") }
     var cantidadText by remember { mutableStateOf("") }
     
+    // Observar estados del ViewModel
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val success by viewModel.success.collectAsState()
@@ -55,7 +60,7 @@ fun DonacionFormScreen(navController: NavController) {
         title = "Nueva Donación",
         currentRoute = "registrar_donacion",
         showBackButton = true
-    ) { padding ->
+    ) { padding: PaddingValues ->
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -86,20 +91,22 @@ fun DonacionFormScreen(navController: NavController) {
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // VALIDACIÓN: Campo obligatorio y longitud máxima
                     OutlinedTextField(
                         value = entidad,
-                        onValueChange = { entidad = it },
-                        label = { Text("Donante (Persona o Entidad)") },
+                        onValueChange = { if (it.length <= 150) entidad = it },
+                        label = { Text("Donante (Persona o Entidad) *") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                         enabled = !isLoading,
                         singleLine = true
                     )
                     
+                    // VALIDACIÓN: Campo obligatorio
                     OutlinedTextField(
                         value = especie,
-                        onValueChange = { especie = it },
-                        label = { Text("Especie / Insumo") },
+                        onValueChange = { if (it.length <= 100) especie = it },
+                        label = { Text("Especie / Insumo *") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
                         enabled = !isLoading,
@@ -107,14 +114,16 @@ fun DonacionFormScreen(navController: NavController) {
                         placeholder = { Text("Ej: Árboles, herramientas, etc.") }
                     )
                     
+                    // VALIDACIÓN: Solo números (Cantidad inválida)
                     OutlinedTextField(
                         value = cantidadText,
                         onValueChange = { 
-                            if (it.all { char -> char.isDigit() }) {
+                            // Filtro de caracteres especiales (solo dígitos)
+                            if (it.all { char -> char.isDigit() } && it.length <= 9) {
                                 cantidadText = it 
                             }
                         },
-                        label = { Text("Cantidad") },
+                        label = { Text("Cantidad *") },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -124,10 +133,12 @@ fun DonacionFormScreen(navController: NavController) {
                     Button(
                         onClick = {
                             val cantidad = cantidadText.toIntOrNull()
+                            
+                            // BLOQUE DE VALIDACIONES (Requisito de evidencia)
                             if (entidad.isBlank() || especie.isBlank() || cantidadText.isBlank()) {
-                                Toast.makeText(context, "Todos los campos son obligatorios", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Por favor complete todos los campos marcados con (*)", Toast.LENGTH_SHORT).show()
                             } else if (cantidad == null || cantidad <= 0) {
-                                Toast.makeText(context, "La cantidad debe ser válida", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "La cantidad debe ser un número positivo válido", Toast.LENGTH_SHORT).show()
                             } else {
                                 viewModel.registrarDonacion(entidad, especie, cantidad)
                             }
