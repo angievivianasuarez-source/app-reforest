@@ -1,0 +1,6 @@
+- [x] Configurar dependencias y permisos para OSMDroid
+- [x] Crear IncendioViewModel para cargar datos de incendios
+- [x] Implementar MapViewContainer para visualizar el mapa
+- [x] Crear AppDrawer con diseño translúcido y botón de cerrar sesión
+- [x] Actualizar MainScreen con Scaffold, TopBar y Drawer
+- [x] Verificar funcionamiento general
